@@ -1,0 +1,596 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Проверка IP и скорости интернета</title>
+<style>
+  :root {
+    --bg: #050505;
+    --line: rgba(255, 255, 255, 0.12);
+    --text: #f4f4f4;
+    --muted: #9a9a9a;
+  }
+  * { box-sizing: border-box; }
+  html, body { min-height: 100%; }
+  body {
+    margin: 0;
+    padding: 24px 18px 40px;
+    color: var(--text);
+    font-family: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+    background:
+      radial-gradient(900px 500px at 10% -10%, #1d1d1d 0%, transparent 60%),
+      radial-gradient(800px 480px at 100% 110%, #121212 0%, transparent 60%),
+      var(--bg);
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { width: 100%; max-width: 760px; margin: 0 auto; }
+
+  .card {
+    padding: 28px;
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    background: linear-gradient(180deg, rgba(24, 24, 24, 0.9), rgba(8, 8, 8, 0.94));
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
+  }
+
+  header { display: flex; align-items: center; gap: 14px; }
+  .logo {
+    flex: none;
+    width: 48px; height: 48px;
+    display: grid; place-items: center;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    color: #050505;
+    font-size: 14px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #ffffff, #bdbdbd);
+  }
+  h1 { margin: 0; font-size: clamp(20px, 4vw, 26px); line-height: 1.2; letter-spacing: -0.02em; }
+  .sub { margin: 4px 0 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+
+  section { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--line); }
+  h2 { margin: 0 0 12px; font-size: 14px; font-weight: 650; }
+
+  .bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 38px;
+    padding: 9px 15px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    color: var(--text);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 650;
+    background: transparent;
+    cursor: pointer;
+    transition: background .15s, filter .15s;
+  }
+  .btn:hover { background: rgba(255, 255, 255, 0.07); }
+  .btn.primary {
+    color: #050505;
+    border-color: transparent;
+    background: linear-gradient(135deg, #ffffff, #c7c7c7);
+  }
+  .btn.primary:hover { filter: brightness(1.06); }
+  .btn:disabled { opacity: .5; cursor: default; }
+  .status { color: var(--muted); font-size: 11.5px; line-height: 1.4; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+  .chip {
+    padding: 7px 12px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    color: var(--muted);
+    font: inherit;
+    font-size: 11.5px;
+    font-weight: 600;
+    background: transparent;
+    cursor: pointer;
+    transition: color .15s, background .15s, border-color .15s;
+  }
+  .chip:hover:not(:disabled) { color: var(--text); background: rgba(255, 255, 255, 0.06); }
+  .chip.active {
+    color: #050505;
+    border-color: transparent;
+    background: linear-gradient(135deg, #ffffff, #c7c7c7);
+  }
+  .chip:disabled { opacity: .5; cursor: default; }
+
+  .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .stat {
+    min-width: 0;
+    padding: 13px 14px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.025);
+  }
+  .stat .label {
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+  }
+  .stat .value {
+    margin-top: 6px;
+    font-size: 15px;
+    font-weight: 650;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+  }
+  .stat .value.small { font-size: 13px; }
+  .stat.wide { grid-column: 1 / -1; }
+  .stat .value.ip { display: flex; align-items: center; gap: 8px; }
+  .copy {
+    flex: none;
+    padding: 3px 7px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    color: var(--muted);
+    font: inherit;
+    font-size: 10px;
+    background: transparent;
+    cursor: pointer;
+  }
+  .copy:hover { color: var(--text); background: rgba(255, 255, 255, 0.06); }
+
+  .speeds { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 14px; }
+  .speed {
+    min-width: 0;
+    padding: 16px 12px;
+    border: 1px solid var(--line);
+    border-radius: 13px;
+    background: rgba(255, 255, 255, 0.025);
+    text-align: center;
+  }
+  .speed .n {
+    font-size: clamp(20px, 5vw, 30px);
+    font-weight: 750;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+  }
+  .speed .u { margin-left: 3px; color: var(--muted); font-size: 11px; font-weight: 600; }
+  .speed .l { margin-top: 7px; color: var(--muted); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; }
+
+  .progress {
+    height: 5px;
+    margin: 4px 0 10px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    overflow: hidden;
+  }
+  .progress > i {
+    display: block;
+    width: 0;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #8a8a8a, #ffffff);
+    transition: width .12s linear;
+  }
+
+  .table-wrap { margin-top: 16px; overflow-x: auto; }
+  .results { width: 100%; border-collapse: collapse; font-size: 12px; white-space: nowrap; }
+  .results th, .results td { padding: 9px 8px; border-bottom: 1px solid var(--line); text-align: left; }
+  .results th {
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+  }
+  .results td.num { font-variant-numeric: tabular-nums; font-weight: 650; }
+  .results td.verdict { color: var(--muted); font-size: 11px; white-space: normal; }
+  .results tr:last-child td { border-bottom: 0; }
+
+  .note {
+    margin-top: 16px;
+    padding: 12px 14px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.6;
+  }
+  code {
+    font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+    font-size: 12px;
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.06);
+    padding: 1px 5px;
+    border-radius: 5px;
+  }
+  a.inline { color: var(--text); text-decoration: none; border-bottom: 1px solid rgba(255,255,255,.3); }
+  a.inline:hover { border-bottom-color: #fff; }
+
+  footer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+    justify-content: space-between;
+    margin-top: 22px;
+    padding-top: 16px;
+    border-top: 1px solid var(--line);
+    font-size: 11.5px;
+    color: var(--muted);
+  }
+  footer a { color: var(--text); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+
+  @media (max-width: 560px) {
+    body { padding: 14px 12px 28px; }
+    .card { padding: 20px 16px; border-radius: 18px; }
+    .grid { grid-template-columns: 1fr; }
+    .speeds { gap: 6px; }
+    .speed { padding: 13px 6px; }
+    .results { font-size: 11px; }
+    footer { justify-content: center; text-align: center; }
+  }
+</style>
+<link rel="stylesheet" href="hearts.css">
+</head>
+<body>
+<div class="hearts" id="hearts" aria-hidden="true"></div>
+<div class="wrap">
+  <main class="card">
+    <header>
+      <div class="logo" aria-hidden="true">IP</div>
+      <div>
+        <h1>Проверка IP и скорости</h1>
+        <p class="sub">Ваш IP, страна, провайдер и скорость интернета — прямо в браузере</p>
+        <p class="thanks" role="button" tabindex="0" title="Нажми — появятся сердечки">Спасибо Леве, Даше, Саше и Сони ♥</p>
+      </div>
+    </header>
+
+    <section>
+      <h2>Ваш IP-адрес</h2>
+      <div class="bar">
+        <button class="btn primary" id="ipRefresh" type="button">Обновить</button>
+        <span class="status" id="ipStatus">Определяем IP…</span>
+      </div>
+      <div class="grid">
+        <div class="stat wide">
+          <div class="label">IP-адрес</div>
+          <div class="value ip"><span id="vIp">—</span><button class="copy" id="copyIp" type="button" title="Скопировать IP">копировать</button></div>
+        </div>
+        <div class="stat">
+          <div class="label">Страна</div>
+          <div class="value" id="vCountry">—</div>
+        </div>
+        <div class="stat">
+          <div class="label">Город / регион</div>
+          <div class="value small" id="vCity">—</div>
+        </div>
+        <div class="stat wide">
+          <div class="label">Провайдер</div>
+          <div class="value small" id="vIsp">—</div>
+        </div>
+        <div class="stat">
+          <div class="label">ASN</div>
+          <div class="value small" id="vAsn">—</div>
+        </div>
+        <div class="stat">
+          <div class="label">Тип</div>
+          <div class="value small" id="vType">—</div>
+        </div>
+      </div>
+      <div class="note">Данные берутся из публичных сервисов <a class="inline" href="https://ipwho.is/" target="_blank" rel="noopener">ipwho.is</a> и <a class="inline" href="https://ipinfo.io/" target="_blank" rel="noopener">ipinfo.io</a>. Если включён VPN или WARP, покажется выходной IP туннеля — так можно проверить, что подключение работает.</div>
+    </section>
+
+    <section>
+      <h2>Скорость интернета</h2>
+      <div class="chips" id="profiles" role="group" aria-label="Сценарий проверки">
+        <button class="chip active" type="button" data-profile="general">Общий</button>
+        <button class="chip" type="button" data-profile="youtube">YouTube</button>
+        <button class="chip" type="button" data-profile="telegram">Telegram</button>
+        <button class="chip" type="button" data-profile="tiktok">TikTok</button>
+        <button class="chip" type="button" data-profile="all">Все сразу</button>
+      </div>
+      <div class="bar">
+        <button class="btn primary" id="speedStart" type="button">Проверить скорость</button>
+        <span class="status" id="speedStatus">Выберите сценарий и нажмите кнопку</span>
+      </div>
+      <div class="progress"><i id="progress"></i></div>
+      <div class="speeds">
+        <div class="speed"><div class="n"><span id="vDown">—</span><span class="u">Мбит/с</span></div><div class="l">Скачивание</div></div>
+        <div class="speed"><div class="n"><span id="vUp">—</span><span class="u">Мбит/с</span></div><div class="l">Загрузка</div></div>
+        <div class="speed"><div class="n"><span id="vPing">—</span><span class="u">мс</span></div><div class="l">Пинг</div></div>
+      </div>
+      <div class="table-wrap" id="resultsWrap" hidden>
+        <table class="results">
+          <thead><tr><th>Сценарий</th><th>↓ Мбит/с</th><th>↑ Мбит/с</th><th>Пинг</th><th>Оценка</th></tr></thead>
+          <tbody id="resultsBody"></tbody>
+        </table>
+      </div>
+      <div class="note">Скорость измеряется тестовыми серверами Cloudflare. Сценарии меняют объём передаваемых данных и критерии оценки: YouTube — буферизация видео, Telegram — сообщения и файлы, TikTok — короткие видео. Пинг измеряется до сайта сервиса, если он доступен, иначе до Cloudflare. Результаты разных сценариев сохраняются в таблице ниже — так их можно сравнить. Для точной оценки повторите проверку 2–3 раза.</div>
+    </section>
+
+    <footer>
+      <span><a href="index.html">На визитку</a> · <a href="download.html">Скачать</a> · <a href="guide.html">Гайд</a> · <a href="warp.html">WARP</a></span>
+      <span>Проверка IP и скорости</span>
+    </footer>
+  </main>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var TIMEOUT = 25000;
+  var PROFILES = {
+    general:  { name: 'Общий',   down: 10 * 1024 * 1024, up: 2 * 1024 * 1024, ping: null },
+    youtube:  { name: 'YouTube', down: 25 * 1024 * 1024, up: 1 * 1024 * 1024, ping: 'https://i.ytimg.com/vi/aqz-KE-bpKQ/hqdefault.jpg' },
+    telegram: { name: 'Telegram', down: 3 * 1024 * 1024,  up: 2 * 1024 * 1024, ping: 'https://telegram.org/favicon.ico' },
+    tiktok:   { name: 'TikTok',  down: 20 * 1024 * 1024, up: 3 * 1024 * 1024, ping: 'https://www.tiktok.com/favicon.ico' }
+  };
+  var activeProfile = 'general';
+  var results = {};
+
+  function text(id, value) { $(id).textContent = value == null || value === '' ? '—' : String(value); }
+  function countryName(code, fallback) {
+    if (!code) return fallback || '—';
+    try { return new Intl.DisplayNames(['ru'], { type: 'region' }).of(String(code).toUpperCase()) || fallback || code; }
+    catch (e) { return fallback || code; }
+  }
+  function flag(code) {
+    if (!code || String(code).length !== 2) return '';
+    return String.fromCodePoint.apply(null, String(code).toUpperCase().split('').map(function (c) { return 127397 + c.charCodeAt(0); })) + ' ';
+  }
+  function mbps(bytes, ms) { return (bytes * 8) / (ms / 1000) / 1000000; }
+  function fmt(n) { return n >= 100 ? n.toFixed(1) : n.toFixed(2); }
+  function setProgress(p) { $('progress').style.width = Math.max(0, Math.min(100, p * 100)).toFixed(1) + '%'; }
+
+  function getJson(url) {
+    var ctrl = new AbortController();
+    var timer = setTimeout(function () { ctrl.abort(); }, 10000);
+    return fetch(url, { cache: 'no-store', signal: ctrl.signal })
+      .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .finally(function () { clearTimeout(timer); });
+  }
+
+  function applyInfo(d) {
+    var cc = d.country_code || d.countryCode || (d.country && d.country.length === 2 ? d.country : '');
+    text('vIp', d.ip);
+    text('vCountry', flag(cc) + countryName(cc, d.country));
+    text('vCity', [d.city, d.region].filter(Boolean).join(', '));
+    text('vIsp', d.isp || d.org || (d.connection && (d.connection.isp || d.connection.org)));
+    text('vAsn', d.asn || (d.connection && d.connection.asn));
+    text('vType', d.type || (d.connection && d.connection.type));
+    $('ipStatus').textContent = 'Обновлено только что';
+  }
+
+  function loadIp() {
+    $('ipStatus').textContent = 'Определяем IP…';
+    return getJson('https://ipwho.is/')
+      .then(function (d) {
+        if (!d || d.success === false) throw new Error('ipwho.is недоступен');
+        return {
+          ip: d.ip, country_code: d.country_code, country: d.country,
+          city: d.city, region: d.region,
+          isp: d.connection && (d.connection.isp || d.connection.org),
+          asn: d.connection && d.connection.asn, type: d.type
+        };
+      })
+      .catch(function () {
+        return getJson('https://ipinfo.io/json').then(function (d) {
+          return { ip: d.ip, country_code: d.country, country: d.country, city: d.city, region: d.region, isp: d.org, asn: (d.org || '').split(' ')[0] };
+        });
+      })
+      .then(applyInfo)
+      .catch(function (e) { $('ipStatus').textContent = 'Не удалось получить IP: ' + (e && e.message ? e.message : 'ошибка сети'); });
+  }
+
+  function measureCloudPing() {
+    var t0 = performance.now();
+    var ctrl = new AbortController();
+    var timer = setTimeout(function () { ctrl.abort(); }, TIMEOUT);
+    return fetch('https://speed.cloudflare.com/__down?bytes=0', { cache: 'no-store', signal: ctrl.signal })
+      .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.arrayBuffer(); })
+      .then(function () { return performance.now() - t0; })
+      .finally(function () { clearTimeout(timer); });
+  }
+
+  function imagePing(url) {
+    return new Promise(function (resolve) {
+      if (!url) { resolve(null); return; }
+      var img = new Image();
+      var done = false;
+      var t0 = performance.now();
+      var timer = setTimeout(function () { finish(null); }, 5000);
+      function finish(ms) {
+        if (done) return;
+        done = true;
+        img.onload = img.onerror = null;
+        clearTimeout(timer);
+        resolve(ms);
+      }
+      img.onload = function () { finish(performance.now() - t0); };
+      img.onerror = function () { finish(null); };
+      img.src = url + (url.indexOf('?') >= 0 ? '&' : '?') + '_=' + Date.now();
+    });
+  }
+
+  function measurePing(url) {
+    return imagePing(url).then(function (ms) {
+      if (ms !== null) return { ms: ms, source: 'сервис' };
+      return measureCloudPing().then(function (x) { return { ms: x, source: 'Cloudflare' }; });
+    });
+  }
+
+  function measureDownload(bytes, attempt) {
+    attempt = attempt || 0;
+    var ctrl = new AbortController();
+    var timer = setTimeout(function () { ctrl.abort(); }, TIMEOUT);
+    var t0 = performance.now();
+    var loaded = 0;
+    setProgress(0.02);
+    return fetch('https://speed.cloudflare.com/__down?bytes=' + bytes, { cache: 'no-store', signal: ctrl.signal })
+      .then(function (r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        if (!r.body) return r.arrayBuffer().then(function (b) { loaded = b.byteLength; });
+        var reader = r.body.getReader();
+        return (function read() {
+          return reader.read().then(function (p) {
+            if (p.done) return;
+            loaded += p.value.byteLength;
+            setProgress(loaded / bytes);
+            return read();
+          });
+        })();
+      })
+      .then(function () {
+        var ms = performance.now() - t0;
+        if (loaded < 1000) throw new Error('сервер не вернул данные');
+        setProgress(1);
+        return mbps(loaded, ms);
+      })
+      .catch(function (e) {
+        if (attempt < 1) return measureDownload(bytes, attempt + 1);
+        throw e;
+      })
+      .finally(function () { clearTimeout(timer); });
+  }
+
+  function measureUpload(bytes) {
+    return new Promise(function (resolve, reject) {
+      var payload = new Uint8Array(bytes);
+      var xhr = new XMLHttpRequest();
+      var t0 = performance.now();
+      xhr.open('POST', 'https://speed.cloudflare.com/__up');
+      xhr.timeout = TIMEOUT;
+      xhr.upload.onprogress = function (e) { if (e.lengthComputable) setProgress(e.loaded / e.total); };
+      xhr.onload = function () {
+        if (xhr.status >= 200 && xhr.status < 300) resolve(mbps(bytes, performance.now() - t0));
+        else reject(new Error('HTTP ' + xhr.status));
+      };
+      xhr.onerror = function () { reject(new Error('ошибка сети')); };
+      xhr.ontimeout = function () { reject(new Error('таймаут')); };
+      xhr.send(payload);
+    });
+  }
+
+  function setBusy(v) {
+    $('speedStart').disabled = v;
+    var chips = document.querySelectorAll('.chip');
+    for (var i = 0; i < chips.length; i++) chips[i].disabled = v;
+  }
+
+  function verdict(key, r) {
+    if (key === 'youtube') {
+      if (r.down >= 25) return '4K — ок';
+      if (r.down >= 5) return 'HD — ок';
+      if (r.down >= 2) return 'Только 480p';
+      return 'Видео тормозит';
+    }
+    if (key === 'telegram') {
+      if (r.down >= 5 && r.up >= 2) return 'Файлы и звонки — ок';
+      if (r.down >= 2 && r.up >= 0.8) return 'Чаты — ок';
+      return 'Тяжело с файлами';
+    }
+    if (key === 'tiktok') {
+      if (r.down >= 10) return 'HD-лента — ок';
+      if (r.down >= 3) return 'Лента — ок';
+      return 'Грузится долго';
+    }
+    return 'Норма';
+  }
+
+  function renderResults() {
+    var body = $('resultsBody');
+    body.innerHTML = '';
+    Object.keys(PROFILES).forEach(function (key) {
+      var r = results[key];
+      if (!r) return;
+      var tr = document.createElement('tr');
+      var cells = [PROFILES[key].name, fmt(r.down), fmt(r.up), Math.round(r.ping) + ' мс', verdict(key, r)];
+      cells.forEach(function (value, i) {
+        var td = document.createElement('td');
+        if (i === 1 || i === 2 || i === 3) td.className = 'num';
+        if (i === 3) td.title = 'Пинг: ' + r.source;
+        if (i === 4) td.className = 'verdict';
+        td.textContent = value;
+        tr.appendChild(td);
+      });
+      body.appendChild(tr);
+    });
+    $('resultsWrap').hidden = body.children.length === 0;
+  }
+
+  function runProfile(key) {
+    var p = PROFILES[key];
+    setProgress(0);
+    $('speedStatus').textContent = p.name + ' · пинг…';
+    return measurePing(p.ping).then(function (ping) {
+      text('vPing', Math.round(ping.ms));
+      $('speedStatus').textContent = p.name + ' · скачиваем…';
+      return measureDownload(p.down).then(function (down) {
+        text('vDown', fmt(down));
+        $('speedStatus').textContent = p.name + ' · загружаем…';
+        return measureUpload(p.up).then(function (up) {
+          text('vUp', fmt(up));
+          results[key] = { down: down, up: up, ping: ping.ms, source: ping.source };
+          renderResults();
+          $('speedStatus').textContent = 'Готово: ' + p.name + ' (пинг: ' + ping.source + ')';
+        });
+      });
+    });
+  }
+
+  function runSpeed() {
+    setBusy(true);
+    ['vDown', 'vUp', 'vPing'].forEach(function (id) { text(id, '—'); });
+    var chain;
+    if (activeProfile === 'all') {
+      chain = ['youtube', 'telegram', 'tiktok'].reduce(function (prev, key) {
+        return prev.then(function () { return runProfile(key); });
+      }, Promise.resolve()).then(function () {
+        $('speedStatus').textContent = 'Готово: все сценарии — сравните в таблице';
+        setTimeout(function () { setProgress(0); }, 700);
+      });
+    } else {
+      chain = runProfile(activeProfile).then(function () {
+        setTimeout(function () { setProgress(0); }, 700);
+      });
+    }
+    chain.catch(function (e) {
+      $('speedStatus').textContent = 'Ошибка проверки: ' + (e && e.message ? e.message : 'сеть недоступна');
+    }).finally(function () { setBusy(false); });
+  }
+
+  $('ipRefresh').addEventListener('click', loadIp);
+  $('speedStart').addEventListener('click', runSpeed);
+  $('profiles').addEventListener('click', function (e) {
+    var chip = e.target.closest('.chip');
+    if (!chip || chip.disabled) return;
+    activeProfile = chip.getAttribute('data-profile');
+    var chips = document.querySelectorAll('.chip');
+    for (var i = 0; i < chips.length; i++) chips[i].classList.remove('active');
+    chip.classList.add('active');
+    $('speedStatus').textContent = activeProfile === 'all'
+      ? 'Проверит YouTube, Telegram и TikTok по очереди'
+      : 'Сценарий: ' + PROFILES[activeProfile].name + '. Нажмите «Проверить скорость»';
+  });
+  $('copyIp').addEventListener('click', function () {
+    var ip = $('vIp').textContent.trim();
+    if (ip === '—' || !navigator.clipboard || !navigator.clipboard.writeText) return;
+    navigator.clipboard.writeText(ip).then(function () {
+      $('copyIp').textContent = 'скопировано';
+      setTimeout(function () { $('copyIp').textContent = 'копировать'; }, 1500);
+    });
+  });
+  loadIp();
+})();
+</script>
+<script src="hearts.js"></script>
+</body>
+</html>
